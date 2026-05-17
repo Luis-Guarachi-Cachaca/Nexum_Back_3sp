@@ -83,10 +83,10 @@ class Portfolio extends Model
         ];
     }
 
-    public function isSectionVisible(string $section): bool
+    public function isSectionVisible(string $section, bool $isRegisteredUser = false): bool
     {
-        // Si el perfil es completamente privado, nada es visible
-        if ($this->global_privacy === 'private') {
+        // Si el perfil es completamente privado y el usuario no está registrado, nada es visible
+        if ($this->global_privacy === 'private' && !$isRegisteredUser) {
         return false;
         }
 

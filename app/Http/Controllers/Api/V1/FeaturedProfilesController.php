@@ -10,16 +10,15 @@ use Illuminate\Http\JsonResponse;
 
 class FeaturedProfilesController extends Controller
 {
-    private const FEATURED_EMAILS = [
-        'ana.garcia@portfolio.test',
-        'carlos.mendez@portfolio.test',
-        'sofia.romero@portfolio.test',
-    ];
-
     public function index(): JsonResponse
     {
-        $users = User::with(['portfolio' => fn ($q) => $q->withCount('projects')])
-            ->whereIn('email', self::FEATURED_EMAILS)
+        $users = User::role('professional')
+            ->whereHas('portfolio', function ($query) {
+                $query->where('global_privacy', 'public');
+            })
+            ->with(['portfolio' => fn ($q) => $q->withCount('projects')])
+            ->latest()
+            ->take(3)
             ->get();
 
         $profiles = $users->map(function (User $user) {

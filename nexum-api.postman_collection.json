@@ -32,6 +32,27 @@
           }
         },
         {
+          "name": "Search Professionals",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "disabled": true }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/search/professionals?q=react",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","search","professionals"],
+              "query": [
+                { "key": "q", "value": "react", "description": "Filtro general (nombre, apellido, profesión, habilidades)" },
+                { "key": "area", "value": "desarrollo", "disabled": true, "description": "Filtro estricto por profesión" },
+                { "key": "skills[]", "value": "Node.js", "disabled": true, "description": "Filtro explícito de habilidades" }
+              ]
+            },
+            "description": "Búsqueda de profesionales por nombre, área o habilidad. \n- Si se hace sin token: Devuelve solo perfiles con global_privacy='public'. \n- Si se hace con token (Habilitar el header Authorization): Devuelve perfiles 'public' y 'private'."
+          }
+        },
+        {
           "name": "Get Portfolio ID (for testing)",
           "request": {
             "method": "GET",
@@ -466,6 +487,18 @@
             ],
             "url": { "raw": "{{base_url}}/api/v1/portfolio", "host": ["{{base_url}}"], "path": ["api","v1","portfolio"] },
             "description": "Devuelve el portfolio del usuario autenticado. Devuelve 404 si aún no tiene portfolio."
+          }
+        },
+        {
+          "name": "Export Portfolio (CV Data)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/v1/portfolio/export", "host": ["{{base_url}}"], "path": ["api","v1","portfolio","export"] },
+            "description": "Devuelve los datos del portfolio del usuario autenticado respetando las configuraciones de visibilidad de secciones (show_projects, show_skills, etc) pero IGNORANDO global_privacy.\n\nIdeal para generar un PDF o CV descargable del usuario desde su panel de control."
           }
         },
         {

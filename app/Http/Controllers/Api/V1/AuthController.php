@@ -108,6 +108,7 @@ class AuthController extends Controller
                 'first_name' => $user->first_name,
                 'last_name'  => $user->last_name,
                 'email'      => $user->email,
+                'locale'     => $user->locale,
                 'role'       => $user->getRoleNames()->first(),
             ],
         ]);
@@ -144,5 +145,18 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => __($status)]);
+    }
+
+    public function updateLocale(Request $request): JsonResponse
+    {
+        $request->validate([
+            'locale' => 'required|string|in:es,en,pt',
+        ]);
+
+        $request->user()->update([
+            'locale' => $request->locale,
+        ]);
+
+        return response()->json(['message' => 'Locale updated successfully.']);
     }
 }

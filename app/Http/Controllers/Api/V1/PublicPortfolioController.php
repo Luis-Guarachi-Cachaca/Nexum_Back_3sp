@@ -19,9 +19,11 @@ class PublicPortfolioController extends Controller
     public function show(Request $request, string $portfolioId): JsonResponse
     {
         $portfolio = Portfolio::with('user')->findOrFail($portfolioId);
+        
+        $isRegisteredUser = auth('sanctum')->check();
 
         // Verificar si el perfil es completamente privado
-        if ($portfolio->global_privacy === 'private') {
+        if ($portfolio->global_privacy === 'private' && !$isRegisteredUser) {
             return response()->json(['message' => 'Portfolio not found.'], 404);
         }
 
@@ -50,7 +52,7 @@ class PublicPortfolioController extends Controller
         ];
 
         // Agregar secciones según configuración de privacidad
-        if ($portfolio->isSectionVisible('projects')) {
+        if ($portfolio->isSectionVisible('projects', $isRegisteredUser)) {
             $projects = Project::where('portfolio_id', $portfolio->id)
                 ->where('archived', false)
                 ->with(['category', 'skills', 'files'])
@@ -59,17 +61,17 @@ class PublicPortfolioController extends Controller
             $response['projects'] = ProjectResource::collection($projects);
         }
 
-        if ($portfolio->isSectionVisible('skills')) {
+        if ($portfolio->isSectionVisible('skills', $isRegisteredUser)) {
             $skills = $portfolio->skills()->with('skill')->get();
             $response['skills'] = SkillResource::collection($skills);
         }
 
-        if ($portfolio->isSectionVisible('certifications')) {
+        if ($portfolio->isSectionVisible('certifications', $isRegisteredUser)) {
             $certifications = $portfolio->certifications;
             $response['certifications'] = CertificationResource::collection($certifications);
         }
 
-        if ($portfolio->isSectionVisible('experience')) {
+        if ($portfolio->isSectionVisible('experience', $isRegisteredUser)) {
             $experiences = WorkExperience::where('user_id', $portfolio->user_id)
                 ->where('is_active', true)
                 ->with('skills')
