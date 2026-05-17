@@ -25,16 +25,22 @@ class FeaturedProfilesController extends Controller
         $profiles = $users->map(function (User $user) {
             $portfolio = $user->portfolio;
 
+            // Solo incluir perfiles que sean públicos
+            if (! $portfolio || $portfolio->global_privacy === 'private') {
+                return null;
+            }
+
             return [
+                'id'             => $portfolio?->id,
                 'first_name'     => $user->first_name,
                 'last_name'      => $user->last_name,
                 'location'       => $portfolio?->location,
                 'avatar_url'     => $portfolio?->avatar_path
                     ? Cloudinary::image($portfolio->avatar_path)->toUrl()
                     : null,
-                'projects_count' => $portfolio?->projects_count ?? 0,
+                'projects_count' => $portfolio->show_projects ? ($portfolio?->projects_count ?? 0) : 0,
             ];
-        });
+        })->filter()->values();
 
         return response()->json([
             'data'  => $profiles,

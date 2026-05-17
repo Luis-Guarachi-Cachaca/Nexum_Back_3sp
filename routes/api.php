@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AdminCategorySuggestionController;
 use App\Http\Controllers\Api\V1\CategorySuggestionController;
 use App\Http\Controllers\Api\V1\WorkExperienceController;
 use App\Http\Controllers\Api\V1\ActivityLogController;
+use App\Http\Controllers\Api\V1\PublicPortfolioController;
 use App\Http\Controllers\Api\V1\Admin\ProjectCategoryController as AdminProjectCategoryController;
 use App\Http\Controllers\Api\V1\AdminSkillController;
 use App\Http\Controllers\Api\V1\AdminSkillSuggestionController;
@@ -17,7 +18,13 @@ use App\Http\Controllers\Api\V1\SkillController;
 use App\Http\Controllers\Api\V1\SkillSuggestionController;
 use App\Http\Controllers\Api\V1\PortfolioController;
 use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\ProfileVisitController;
+use App\Http\Controllers\Api\V1\PortfolioLinkController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\ThemeController;
+use App\Http\Controllers\Api\V1\PortfolioThemeController;
+use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\AdminBackupController;
 
 Route::prefix('v1')->group(function () {
 
@@ -26,6 +33,19 @@ Route::prefix('v1')->group(function () {
 
     // Public: categorías de proyecto (para el selector del modal de creación de proyectos)
     Route::get('/project-categories', [ProjectCategoryController::class, 'index']);
+
+    // Public: visualización de portafolios individuales
+    Route::get('/portfolios/{portfolio}', [PublicPortfolioController::class, 'show']);
+
+    // Public: gestión de visitas de perfiles
+    Route::prefix('profile/{profileId}')->group(function () {
+        Route::post('/visit', [ProfileVisitController::class, 'visit']);
+        Route::get('/stats', [ProfileVisitController::class, 'stats']);
+        Route::get('/visitors', [ProfileVisitController::class, 'visitors']);
+    });
+
+    // HU3(sp 3): Temas disponibles (público)
+    Route::get('/themes', [ThemeController::class, 'index']);
 
     Route::prefix('auth')->group(function () {
 
@@ -80,13 +100,27 @@ Route::prefix('v1')->group(function () {
         Route::get('/project-categories', [AdminProjectCategoryController::class, 'index']);
         Route::patch('/project-categories/{category}', [AdminProjectCategoryController::class, 'update']);
         Route::patch('/project-categories/{category}/toggle-status', [AdminProjectCategoryController::class, 'toggleStatus']);
+
+        //Backups y dashboard backup
+        Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+        Route::post('/backup',   [AdminBackupController::class,   'generate']);
     });
 
     // HU-7 + HU-8: Portfolio del usuario autenticado
     Route::prefix('portfolio')->middleware('auth:sanctum')->group(function () {
         Route::get('/', [PortfolioController::class, 'show']);
+        Route::get('/export', [PortfolioController::class, 'export']);
         Route::put('/', [PortfolioController::class, 'update']);
         Route::post('/avatar', [PortfolioController::class, 'updateAvatar']);
+        // HU3(sp 3): Actualizar tema del portfolio
+        Route::patch('/theme', [PortfolioThemeController::class, 'update']);
+
+        // HU-9: Enlaces adicionales del portfolio
+        Route::prefix('links')->group(function () {
+            Route::get('/', [PortfolioLinkController::class, 'index']);
+            Route::post('/', [PortfolioLinkController::class, 'store']);
+            Route::delete('/{id}', [PortfolioLinkController::class, 'destroy']);
+        });
 
         // HU-4: Habilidades del portfolio
         Route::prefix('skills')->group(function () {

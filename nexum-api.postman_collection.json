@@ -13,6 +13,7 @@
     { "key": "project_file_id",    "value": "", "type": "string" },
     { "key": "certification_id",   "value": "", "type": "string" },
     { "key": "portfolio_skill_id",   "value": "", "type": "string" },
+    { "key": "portfolio_id",        "value": "", "type": "string" },
     { "key": "work_experience_id",   "value": "", "type": "string" },
     { "key": "suggestion_id",        "value": "", "type": "string" }
   ],
@@ -28,6 +29,257 @@
             "header": [{ "key": "Accept", "value": "application/json" }],
             "url": { "raw": "{{base_url}}/api/v1/featured-profiles", "host": ["{{base_url}}"], "path": ["api","v1","featured-profiles"] },
             "description": "3 perfiles destacados para la landing page + estadísticas globales (total_users, total_projects). No requiere autenticación."
+          }
+        },
+        {
+          "name": "Get Portfolio ID (for testing)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { 
+              "raw": "{{base_url}}/api/v1/portfolio", 
+              "host": ["{{base_url}}"], 
+              "path": ["api","v1","portfolio"] 
+            },
+            "description": "Obtiene el portfolio del usuario autenticado y guarda el ID automáticamente en {{portfolio_id}}. Requiere login previo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('portfolio_id', response.id);",
+                  "    pm.collectionVariables.set('user_name', response.user.first_name + ' ' + response.user.last_name);",
+                  "    console.log('Portfolio ID guardado:', response.id);",
+                  "} else {",
+                  "    console.log('Error obteniendo portfolio:', pm.response.code);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "View Public Portfolio",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { 
+              "raw": "{{base_url}}/api/v1/portfolios/{{portfolio_id}}", 
+              "host": ["{{base_url}}"], 
+              "path": ["api","v1","portfolios","{{portfolio_id}}"] 
+            },
+            "description": "Visualización pública de un portafolio individual. Respeta la configuración de privacidad del usuario. Si el perfil es privado, devuelve 404. No requiere autenticación.\n\n**PREREQUISITO:** Ejecutar primero 'Get Portfolio ID' para obtener un {{portfolio_id}} válido.\n\n**Casos de prueba:**\n1. Perfil público con todas las secciones visibles (default)\n2. Perfil público con secciones ocultas (modificar en PUT /portfolio)\n3. Perfil privado (global_privacy: 'private') → debe devolver 404\n\n**Body:** No requiere body (GET request)"
+          }
+        },
+        {
+          "name": "HU9 — Perfil publico completo (todo visible)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Tiene id y datos basicos', () => {",
+                  "    pm.expect(r).to.have.property('id');",
+                  "    pm.expect(r).to.have.property('profession');",
+                  "    pm.expect(r.user).to.have.property('first_name');",
+                  "    pm.expect(r.user).to.not.have.property('email');",
+                  "});",
+                  "pm.test('Incluye las 4 secciones', () => {",
+                  "    pm.expect(r).to.have.property('projects');",
+                  "    pm.expect(r).to.have.property('skills');",
+                  "    pm.expect(r).to.have.property('certifications');",
+                  "    pm.expect(r).to.have.property('work_experiences');",
+                  "});",
+                  "pm.test('No expone campos de privacidad', () => {",
+                  "    pm.expect(r).to.not.have.property('global_privacy');",
+                  "    pm.expect(r).to.not.have.property('show_projects');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/portfolios/{{portfolio_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "portfolios",
+                "{{portfolio_id}}"
+              ]
+            },
+            "description": "PREREQUISITO: Ejecutar primero Login (Profesional) y Get Portfolio ID.\n\nSin token — simula visitante anonimo.\n\nEsperado: 200 con las 4 secciones (projects, skills, certifications, work_experiences).\n\nVerificar:\n- No incluye email del user\n- No incluye global_privacy ni show_*"
+          }
+        },
+        {
+          "name": "HU9 — Configurar y verificar privacidad",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "console.log('Perfil puesto en privado. Ahora ejecutar los dos siguientes.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/portfolio",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "portfolio"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Ana\",\n  \"last_name\": \"García\",\n  \"global_privacy\": \"private\",\n  \"show_skills\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "El dueno pone su perfil en privado.\nDespues ejecutar los dos siguientes."
+          }
+        },
+        {
+          "name": "HU9 — Perfil privado devuelve 404 ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "const r = pm.response.json();",
+                  "pm.test('Mensaje correcto', () => {",
+                  "    pm.expect(r.message).to.equal('Portfolio not found.');",
+                  "});",
+                  "console.log('Correcto: perfil privado no expuesto al visitante');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/portfolios/{{portfolio_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "portfolios",
+                "{{portfolio_id}}"
+              ]
+            },
+            "description": "PREREQUISITO: Ejecutar primero HU9 — Configurar perfil privado.\n\nSin token — simula visitante externo.\n\nEsperado: 404 con mensaje 'Portfolio not found.'"
+          }
+        },
+        {
+          "name": "HU9 — Restaurar perfil a publico (cleanup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 — perfil restaurado', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('global_privacy es public', () => {",
+                  "    pm.expect(r.global_privacy).to.equal('public');",
+                  "});",
+                  "console.log('Perfil restaurado. Pruebas HU9 completadas.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/portfolio",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "portfolio"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Ana\",\n  \"last_name\": \"García\",\n  \"global_privacy\": \"public\",\n  \"show_projects\": true,\n  \"show_skills\": true,\n  \"show_experience\": true,\n  \"show_certifications\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Restaura el perfil a publico con todas las secciones visibles.\nEjecutar siempre al final de las pruebas HU9."
           }
         }
       ]
@@ -228,10 +480,10 @@
             "url": { "raw": "{{base_url}}/api/v1/portfolio", "host": ["{{base_url}}"], "path": ["api","v1","portfolio"] },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"first_name\": \"Juan\",\n  \"last_name\": \"García\",\n  \"profession\": \"Full Stack Developer\",\n  \"biography\": \"Desarrollador con experiencia en Laravel y Vue.js.\",\n  \"phone\": \"+34 600 000 000\",\n  \"location\": \"Madrid, España\",\n  \"linkedin_url\": \"https://www.linkedin.com/in/mi-perfil\",\n  \"github_url\": \"https://github.com/mi-usuario\"\n}",
+              "raw": "{\n  \"first_name\": \"Juan\",\n  \"last_name\": \"García\",\n  \"profession\": \"Full Stack Developer\",\n  \"biography\": \"Desarrollador con experiencia en Laravel y Vue.js.\",\n  \"phone\": \"+34 600 000 000\",\n  \"location\": \"Madrid, España\",\n  \"linkedin_url\": \"https://www.linkedin.com/in/mi-perfil\",\n  \"github_url\": \"https://github.com/mi-usuario\",\n  \"global_privacy\": \"public\",\n  \"show_projects\": true,\n  \"show_skills\": true,\n  \"show_experience\": true,\n  \"show_certifications\": true\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Crea o actualiza el portfolio (updateOrCreate). Debe ejecutarse antes de crear proyectos o certificaciones."
+            "description": "Crea o actualiza el portfolio (updateOrCreate). Debe ejecutarse antes de crear proyectos o certificaciones.\n\nCampos de privacidad:\n- global_privacy: 'public' o 'private' (default: 'public'). Si es 'private', oculta todo el perfil\n- show_projects: boolean (default: true). Muestra/oculta proyectos\n- show_skills: boolean (default: true). Muestra/oculta habilidades\n- show_experience: boolean (default: true). Muestra/oculta experiencia laboral\n- show_certifications: boolean (default: true). Muestra/oculta certificaciones\n\nSi global_privacy es 'private', todos los demás campos de privacidad son ignorados."
           }
         },
         {
@@ -837,7 +1089,137 @@
               ]
             }
           }
+        },
+        {
+          "name": "Admin Dashboard",
+          "event": [
+          {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Tiene estructura correcta', () => {",
+                  "    pm.expect(r.data).to.have.property('users');",
+                  "    pm.expect(r.data.users).to.have.property('total');",
+                  "    pm.expect(r.data.users).to.have.property('active');",
+                  "    pm.expect(r.data.users).to.have.property('inactive');",
+                  "    pm.expect(r.data).to.have.property('portfolios');",
+                  "    pm.expect(r.data).to.have.property('activity');",
+                  "});"
+                ]
+              }
+            }
+          ],
+            "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "dashboard"]
+            },
+            "description": "Devuelve métricas clave del sistema: conteo de usuarios (total, activos, inactivos), portfolios y actividad reciente.\n\nRequiere: Bearer {{admin_token}}\nPREREQUISITO: Ejecutar Login Admin para obtener {{admin_token}}.\n\nRespuesta 200:\n{\n  \"data\": {\n    \"users\": { \"total\": 4, \"active\": 3, \"inactive\": 1 },\n    \"portfolios\": 3,\n    \"activity\": { \"total_actions\": 10, \"recent\": [...] }\n  }\n}\n\nErrores:\n- 401 sin token\n- 403 sin rol admin"
+            }
+        },
+        {
+          "name": "Admin Dashboard — Sin Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "dashboard"]
+            },
+            "description": "Prueba negativa: acceder al dashboard sin token. Esperamos 401 Unauthorized."
+          }
+        },
+        {
+          "name": "Admin Dashboard — Sin Rol Admin (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "dashboard"]
+            },
+          "description": "Prueba negativa: acceder al dashboard con token de usuario profesional. Esperamos 403 Forbidden."
         }
+      },
+      {
+        "name": "Generar Backup SQL",
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                "pm.test('Respuesta es un archivo descargable', () => {",
+                "    const disposition = pm.response.headers.get('Content-Disposition');",
+                "    pm.expect(disposition).to.include('attachment');",
+                "    pm.expect(disposition).to.include('.sql');",
+                "});"
+              ]
+            }
+          }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept",        "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/backup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "backup"]
+            },
+            "description": "Genera una copia de seguridad de la base de datos en formato SQL y la devuelve como descarga directa.\n\nNo requiere body.\nRequiere: Bearer {{admin_token}}\nPREREQUISITO: Ejecutar Login Admin para obtener {{admin_token}}.\n\nRespuesta 200: archivo .sql descargable\nEl archivo se genera con pg_dump si está disponible, o con PHP puro como fallback.\nEl evento queda registrado en activity_log.\n\nErrores:\n- 401 sin token\n- 403 sin rol admin\n- 500 si falla la generación del backup"
+          }
+        },
+        {
+        "name": "Generar Backup — Sin Token (401)",
+        "request": {
+          "method": "POST",
+          "header": [
+            { "key": "Accept", "value": "application/json" }
+          ],
+          "url": {
+            "raw": "{{base_url}}/api/v1/admin/backup",
+            "host": ["{{base_url}}"],
+            "path": ["api", "v1", "admin", "backup"]
+          },
+        "description": "Prueba negativa: intentar generar backup sin token. Esperamos 401 Unauthorized."
+        }
+      },
+      {
+      "name": "Generar Backup — Sin Rol Admin (403)",
+      "request": {
+      "method": "POST",
+        "header": [
+          { "key": "Accept",        "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/backup",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "admin", "backup"]
+        },
+        "description": "Prueba negativa: intentar generar backup con token de usuario profesional. Esperamos 403 Forbidden."
+        }
+      }
       ]
     },
     {
@@ -1202,6 +1584,212 @@
               "path": ["api","v1","work-experiences","{{work_experience_id}}","toggle"]
             },
             "description": "Invierte el estado is_active de la experiencia laboral (true↔false). Sin body.\n\nDevuelve 404 si la experiencia no pertenece al usuario autenticado.\n\nResponse: { \"message\": \"Work experience updated successfully.\", \"is_active\": false }"
+          }
+        }
+      ]
+    },
+    {
+      "name": "HU3 - Temas de Portfolio",
+      "description": "Endpoints para personalización del diseño del portafolio.\n\nFLUJO DE PRUEBA:\n1. GET /themes             → ver los 2 temas disponibles (sin token)\n2. Login profesional       → obtener {{token}}\n3. Get Portfolio ID        → obtener {{portfolio_id}}\n4. PATCH /portfolio/theme  → cambiar el tema (con token)\n5. GET /portfolios/{{portfolio_id}} → verificar que el tema se refleja en la vista pública",
+    "item": [
+      {
+        "name": "Listar Temas Disponibles",
+        "request": {
+          "method": "GET",
+          "header": [
+            { "key": "Accept", "value": "application/json" }
+          ],
+          "url": {
+            "raw": "{{base_url}}/api/v1/themes",
+            "host": ["{{base_url}}"],
+            "path": ["api", "v1", "themes"]
+          },
+          "description": "Devuelve los 2 temas predefinidos disponibles para el portfolio.\n\nEndpoint público — no requiere autenticación.\n\nRespuesta esperada:\n{\n  \"data\": [\n    { \"id\": \"light_mode\", \"name\": \"Modo Claro\", \"description\": \"...\", \"palette\": null },\n    { \"id\": \"dark_mode\",  \"name\": \"Modo Oscuro\", \"description\": \"...\", \"palette\": null }\n  ]\n}"
+        }
+      },
+      {
+        "name": "Actualizar Tema del Portfolio",
+        "request": {
+          "method": "PATCH",
+          "header": [
+            { "key": "Content-Type",  "value": "application/json" },
+            { "key": "Accept",        "value": "application/json" },
+            { "key": "Authorization", "value": "Bearer {{token}}" }
+          ],
+          "url": {
+            "raw": "{{base_url}}/api/v1/portfolio/theme",
+            "host": ["{{base_url}}"],
+            "path": ["api", "v1", "portfolio", "theme"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"design_pattern\": \"dark_mode\"\n}",
+            "options": { "raw": { "language": "json" } }
+          },
+          "description": "Actualiza el tema visual del portfolio del usuario autenticado.\n\nRequiere: Bearer {{token}} de un usuario con rol 'professional'.\nPREREQUISITO: Ejecutar Login para obtener {{token}}.\n\nValores válidos para design_pattern:\n- \"light_mode\" → Modo Claro\n- \"dark_mode\"  → Modo Oscuro\n\nRespuesta 200:\n{\n  \"message\": \"Tema actualizado correctamente.\",\n  \"data\": {\n    \"design_pattern\": \"dark_mode\",\n    \"theme\": {\n      \"id\": \"dark_mode\",\n      \"name\": \"Modo Oscuro\",\n      \"description\": \"...\",\n      \"palette\": null\n    }\n  }\n}\n\nErrores:\n- 401 sin token\n- 422 si design_pattern es inválido o está vacío\n- 404 si el usuario no tiene portfolio creado"
+        }
+      },
+      {
+        "name": "Actualizar Tema - Valor Inválido (422)",
+        "request": {
+          "method": "PATCH",
+          "header": [
+            { "key": "Content-Type",  "value": "application/json" },
+            { "key": "Accept",        "value": "application/json" },
+            { "key": "Authorization", "value": "Bearer {{token}}" }
+          ],
+          "url": {
+            "raw": "{{base_url}}/api/v1/portfolio/theme",
+            "host": ["{{base_url}}"],
+            "path": ["api", "v1", "portfolio", "theme"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"design_pattern\": \"tema_inexistente\"\n}",
+            "options": { "raw": { "language": "json" } }
+          },
+          "description": "Prueba negativa: enviar un tema que no existe.\nEsperamos respuesta 422 con error de validación en 'design_pattern'."
+        }
+      },
+      {
+        "name": "Actualizar Tema - Sin Token (401)",
+        "request": {
+          "method": "PATCH",
+          "header": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Accept",       "value": "application/json" }
+          ],
+          "url": {
+            "raw": "{{base_url}}/api/v1/portfolio/theme",
+            "host": ["{{base_url}}"],
+            "path": ["api", "v1", "portfolio", "theme"]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"design_pattern\": \"dark_mode\"\n}",
+            "options": { "raw": { "language": "json" } }
+          },
+          "description": "Cambia el tema del portfolio del usuario autenticado.\n\n- design_pattern: 'light_mode' | 'dark_mode'\n\nRequiere Bearer {{token}}. El tema se refleja en la vista pública del portfolio."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Visitas de Perfiles",
+      "description": "Gestión de visitas a perfiles. Registra visitantes y muestra estadísticas. Los admins y dueños no cuentan.",
+      "item": [
+        {
+          "name": "Registrar Visita",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile/{{portfolio_id}}/visit",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","profile","{{portfolio_id}}","visit"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Registra una visita a un perfil. No requiere body.\n\n**Respuestas esperadas:**\n- 201: Visita registrada exitosamente\n- 200: Dueño detectado (no contada)\n- 200: Admin detectado (no contada)\n- 200: IP duplicada (misma IP en 2 horas)\n\n**Importante:**\n- Si el visitante está autenticado, se registra su user_id\n- Si es anónimo, se registra IP (pero no se expone al front)\n- El contador views_count del portfolio se incrementa automáticamente"
+          }
+        },
+        {
+          "name": "Estadísticas del Perfil",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile/{{portfolio_id}}/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","profile","{{portfolio_id}}","stats"]
+            },
+            "description": "Obtiene estadísticas del perfil: contador total + últimos 5 visitantes.\n\n**Response 200:**\n{\n  \"visits_count\": 142,\n  \"recent_visitors\": [\n    { \"user_id\": 1, \"name\": \"Juan Pérez\", \"visited_at\": \"2026-05-08T10:00:00\" },\n    { \"user_id\": 2, \"name\": \"Ana López\", \"visited_at\": \"2026-05-07T18:30:00\" },\n    { \"user_id\": null, \"name\": \"Visitante anónimo\", \"visited_at\": \"2026-05-07T15:45:00\" }\n  ]\n}\n\n**Nota:** Los admins y el dueño del perfil no aparecen en la lista de visitantes."
+          }
+        },
+        {
+          "name": "Lista Completa de Visitantes",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile/{{portfolio_id}}/visitors?per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","profile","{{portfolio_id}}","visitors"],
+              "query": [
+                { "key": "per_page", "value": "20", "description": "Items por página (máx 100)" }
+              ]
+            },
+            "description": "Lista completa de visitantes paginada. Incluye todos excepto admins y dueño del perfil.\n\n**Response 200:**\n{\n  \"data\": [\n    { \"id\": 1, \"user_id\": 3, \"name\": \"Ana López\", \"visited_at\": \"2026-05-08T10:00:00\" },\n    { \"id\": 2, \"user_id\": null, \"name\": \"Visitante anónimo\", \"visited_at\": \"2026-05-08T09:45:00\" }\n  ],\n  \"meta\": {\n    \"current_page\": 1,\n    \"last_page\": 1,\n    \"per_page\": 20,\n    \"total\": 2\n  }\n}\n\n**Importante:** La IP nunca se expone al frontend, solo se muestra \"Visitante anónimo\"."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Enlaces Adicionales del Portfolio",
+      "description": "Gestión de enlaces adicionales para el portfolio. Detecta automáticamente la plataforma del URL.",
+      "item": [
+        {
+          "name": "Listar Enlaces Adicionales",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/portfolio/links",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","portfolio","links"]
+            },
+            "description": "Lista todos los enlaces adicionales del usuario autenticado.\n\n**Response 200:**\n{\n  \"data\": [\n    { \"id\": 1, \"url\": \"https://kaggle.com/anagarcia\", \"platform\": \"kaggle\" },\n    { \"id\": 2, \"url\": \"https://github.com/anagarcia\", \"platform\": \"github\" }\n  ]\n}\n\nRequiere Bearer {{token}}."
+          }
+        },
+        {
+          "name": "Agregar Nuevo Enlace",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/portfolio/links",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","portfolio","links"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://github.com/username\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Agrega un nuevo enlace adicional al portfolio. El sistema detecta automáticamente la plataforma.\n\n**Request:**\n{\n  \"url\": \"https://github.com/username\" (requerido, max 255 chars)\n}\n\n**Response 201:**\n{\n  \"data\": {\n    \"id\": 3,\n    \"url\": \"https://github.com/username\",\n    \"platform\": \"github\",\n    \"created_at\": \"2026-05-11T16:30:00.000Z\"\n  }\n}\n\n**Errores:**\n- 422: URL inválida o supera 255 caracteres\n- 422: Máximo 10 enlaces permitidos\n- 404: Portfolio no encontrado"
+          }
+        },
+        {
+          "name": "Eliminar Enlace",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/portfolio/links/{{link_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","portfolio","links","{{link_id}}"],
+              "variable": [{ "key": "link_id", "value": "1" }]
+            },
+            "description": "Elimina un enlace adicional del portfolio del usuario autenticado.\n\n**Response 200:**\n{\n  \"message\": \"Link deleted successfully\"\n}\n\n**Errores:**\n- 404: Enlace no encontrado\n- 404: Portfolio no encontrado\n- 403: El enlace no pertenece al usuario autenticado"
           }
         }
       ]

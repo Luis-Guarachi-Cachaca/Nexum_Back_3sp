@@ -54,6 +54,11 @@ class PortfolioRequest extends FormRequest
                     }
                 },
             ],
+            'global_privacy' => ['sometimes', 'in:public,private'],
+            'show_projects' => ['sometimes', 'boolean'],
+            'show_skills' => ['sometimes', 'boolean'],
+            'show_experience' => ['sometimes', 'boolean'],
+            'show_certifications' => ['sometimes', 'boolean'],
         ];
     }
 }

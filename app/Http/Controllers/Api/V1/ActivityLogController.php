@@ -16,12 +16,15 @@ class ActivityLogController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = Activity::with('causer:id,first_name,last_name,email')
+        $query = Activity::with([
+                'causer:id,first_name,last_name,email',
+                'subject',  // ← agregado
+            ])
             ->latest();
 
         if ($request->filled('user_id')) {
             $query->where('causer_type', 'App\Models\User')
-                  ->where('causer_id', $request->user_id);
+                    ->where('causer_id', $request->user_id);
         }
 
         $perPage = $request->input('per_page', 20);
@@ -37,6 +40,12 @@ class ActivityLogController extends Controller
                 'first_name' => $activity->causer->first_name,
                 'last_name'  => $activity->causer->last_name,
                 'email'      => $activity->causer->email,
+            ] : null,
+            'subject'    => $activity->subject ? [  // ← agregado
+                'id'         => $activity->subject->id,
+                'first_name' => $activity->subject->first_name ?? null,
+                'last_name'  => $activity->subject->last_name  ?? null,
+                'email'      => $activity->subject->email      ?? null,
             ] : null,
             'properties' => $activity->properties,
         ]);

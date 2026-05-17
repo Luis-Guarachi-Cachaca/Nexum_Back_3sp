@@ -59,6 +59,24 @@ class AdminUserController extends Controller
             // Revocar todos los tokens activos
             $user->tokens()->delete();
 
+            // Registrar en activity log con el usuario afectado como sujeto
+            $action = 'deactivated';
+            activity()
+                ->performedOn($user)
+                ->causedBy($request->user())
+                ->withProperties([
+                    'attributes' => [
+                        'is_active' => false,
+                        'deactivated_by_admin' => true,
+                    ],
+                    'old' => [
+                        'is_active' => true,
+                        'deactivated_by_admin' => false,
+                    ],
+                ])
+                ->event('deactivated')
+                ->log("User {$action}: {$user->email}");
+
             return response()->json([
                 'message' => 'User deactivated successfully.',
                 'user'    => ['id' => $user->id, 'email' => $user->email, 'is_active' => false],
@@ -69,6 +87,24 @@ class AdminUserController extends Controller
             'is_active'            => true,
             'deactivated_by_admin' => false,
         ]);
+
+        // Registrar en activity log con el usuario afectado como sujeto
+        $action = 'reactivated';
+        activity()
+            ->performedOn($user)
+            ->causedBy($request->user())
+            ->withProperties([
+                'attributes' => [
+                    'is_active' => true,
+                    'deactivated_by_admin' => false,
+                ],
+                'old' => [
+                    'is_active' => false,
+                    'deactivated_by_admin' => true,
+                ],
+            ])
+            ->event('reactivated')
+            ->log("User {$action}: {$user->email}");
 
         return response()->json([
             'message' => 'User reactivated successfully.',
