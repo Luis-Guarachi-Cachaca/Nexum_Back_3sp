@@ -47,20 +47,25 @@ class AuthController extends Controller
     {
         $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
 
+        // Ignorar la firma si estamos en local para evitar problemas con localhost vs 127.0.0.1, o simplemente usar hash_equals
+        if (! $request->hasValidSignature() && ! app()->environment('local')) {
+            return redirect($frontendUrl . '/login?status=error');
+        }
+
         $user = User::findOrFail($id);
 
-        if (! hash_equals($hash, sha1($user->getEmailForVerification()))) {
-            return redirect($frontendUrl . '/email-verified?status=error');
+        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return redirect($frontendUrl . '/login?status=error');
         }
 
         if ($user->hasVerifiedEmail()) {
-            return redirect($frontendUrl . '/email-verified?status=already-verified');
+            return redirect($frontendUrl . '/login?status=already-verified');
         }
 
         $user->markEmailAsVerified();
         event(new Verified($user));
 
-        return redirect($frontendUrl . '/email-verified?status=success');
+        return redirect($frontendUrl . '/login?status=success');
     }
 
     public function resendVerification(Request $request): JsonResponse
