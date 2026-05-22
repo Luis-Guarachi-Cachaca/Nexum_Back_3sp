@@ -184,14 +184,14 @@ SESSION_LIFETIME=120
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 
-# ─── Correo electrónico (Gmail SMTP) ──────────────────────────
+# ─── Correo electrónico (Resend SMTP) ──────────────────────────
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=codisrl2026@gmail.com
-MAIL_PASSWORD=                    # solicitar al líder del equipo
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=codisrl2026@gmail.com
+MAIL_HOST=smtp.resend.com
+MAIL_PORT=465
+MAIL_USERNAME=resend
+MAIL_PASSWORD=re_aEgahgLi_kUPs5RK8RkUdNpht28KWkfLv
+MAIL_ENCRYPTION=smtps
+MAIL_FROM_ADDRESS="nexum@floreriaflordeloto.com"
 MAIL_FROM_NAME="Equipo Codi"
 
 # ─── URLs del sistema ──────────────────────────────────────────
@@ -211,23 +211,15 @@ CLOUDINARY_API_SECRET=              # API secret
 
 > La `CLOUDINARY_URL` y sus credenciales se obtienen desde el dashboard de Cloudinary en **Dashboard → API Keys → Copy URL**. Solicitarlas al líder del equipo — no se suben al repositorio.
 
-### Configuración de correo (Gmail SMTP)
+### Configuración de correo (Resend SMTP)
 
-**¿Por qué se necesita un App Password?**
-Gmail no permite usar la contraseña normal para envío SMTP desde aplicaciones. Se requiere generar una contraseña especial.
-
-**Pasos para generarla (solo el administrador de la cuenta):**
-1. Entrá a myaccount.google.com con la cuenta `codisrl2026@gmail.com`
-2. Seguridad → Verificación en dos pasos → Activar (si no está activa)
-3. Seguridad → Contraseñas de aplicaciones
-4. Seleccioná App: Correo / Dispositivo: Windows
-5. Copiá la contraseña de 16 caracteres generada
-6. Pegala en `MAIL_PASSWORD` del `.env`
+**Uso de Resend para el envío de correos**
+Para enviar los correos de la plataforma se utiliza el servicio de Resend a través de SMTP. 
 
 **Importante:**
-- Nunca subas el `.env` al repositorio Git
-- El `MAIL_PASSWORD` se comparte únicamente por canal privado del equipo
-- Sin esta configuración los emails de verificación y recuperación de contraseña no se enviarán
+- Nunca subas el `.env` al repositorio Git.
+- La credencial `luchito_api` se provee de manera interna.
+- Sin esta configuración los emails de verificación y recuperación de contraseña no se enviarán.
 
 ### Cola de trabajos
 
