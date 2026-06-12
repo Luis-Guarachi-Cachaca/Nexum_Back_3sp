@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # API Laravel, health check y archivos de storage
+    RewriteCond %{REQUEST_URI} ^/(api|up|storage)
+    RewriteRule ^ index.php [L]
+
+    # Pasar cabecera Authorization a PHP (Sanctum / Bearer tokens)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Archivos estáticos existentes (assets de React, favicon, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Directorios existentes
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # SPA React: cualquier otra ruta → index.html
+    RewriteRule ^ index.html [L]
+</IfModule>

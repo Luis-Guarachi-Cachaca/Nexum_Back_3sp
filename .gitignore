@@ -10,6 +10,7 @@
 .env
 .env.backup
 .env.production
+deploy/.env.webtis
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
