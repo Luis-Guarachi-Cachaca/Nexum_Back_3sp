@@ -43,7 +43,7 @@ class FeedController extends Controller
                     'id' => $user->id,
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
-                    'avatar_url' => $portfolio->avatar_path,
+                    'avatar_url' => $portfolio->avatar_path ? cloudinary()->image($portfolio->avatar_path)->toUrl() : null,
                     'profession' => $portfolio->headline ?? $portfolio->profession ?? null, // Will refine this
                     'portfolio_id' => $portfolio->id,
                 ],

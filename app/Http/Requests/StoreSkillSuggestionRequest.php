@@ -54,13 +54,23 @@ class StoreSkillSuggestionRequest extends FormRequest
                 $validator->errors()->add('category', 'La categoría no existe para el tipo seleccionado.');
             }
 
-            // Skill name must not already exist in that category
-            $skillExists = Skill::where('category', $this->category)
-                ->whereRaw('LOWER(name) = ?', [strtolower($this->name)])
-                ->exists();
-
-            if ($skillExists) {
-                $validator->errors()->add('name', 'Esta habilidad ya existe en el catálogo. Agrégala directamente desde el catálogo.');
+            // Skill name must not already exist in that category (check with fuzzy matching)
+            $suggestedName = strtolower(trim($this->name));
+            $existingSkills = Skill::where('category', $this->category)->get(['name']);
+            
+            foreach ($existingSkills as $skill) {
+                $existingName = strtolower(trim($skill->name));
+                
+                if ($existingName === $suggestedName) {
+                    $validator->errors()->add('name', 'Esta habilidad ya existe en el catálogo. Agrégala directamente desde el catálogo.');
+                    break;
+                }
+                
+                // Levenshtein distance: allow up to 2 typos for relatively long words
+                if (strlen($suggestedName) > 3 && levenshtein($existingName, $suggestedName) <= 2) {
+                    $validator->errors()->add('name', "La habilidad sugerida es muy similar a '{$skill->name}', que ya existe en el catálogo.");
+                    break;
+                }
             }
 
             // User must not have a pending suggestion with the same name in the same category

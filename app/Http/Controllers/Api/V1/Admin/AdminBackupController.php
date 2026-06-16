@@ -30,4 +30,30 @@ class AdminBackupController extends Controller
             ->download($backup['path'], $backup['filename'])
             ->deleteFileAfterSend(true);
     }
+
+    public function restore(Request $request)
+    {
+        $request->validate([
+            'backup' => 'required|file|mimetypes:text/plain,application/sql,application/octet-stream'
+        ]);
+
+        $file = $request->file('backup');
+        
+        try {
+            $this->backupService->restore($file->getRealPath());
+
+            activity('admin')
+                ->causedBy($request->user())
+                ->withProperties([
+                    'filename' => $file->getClientOriginalName(),
+                    'ip'       => $request->ip(),
+                ])
+                ->event('backup.restored')
+                ->log('Admin restored a database backup.');
+
+            return response()->json(['message' => 'Backup restored successfully'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al restaurar: ' . $e->getMessage()], 500);
+        }
+    }
 }

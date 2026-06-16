@@ -24,6 +24,9 @@ class ProfileViewed extends Notification implements ShouldQueue
 
     public function toDatabase($notifiable): DatabaseMessage
     {
+        $visitorPortfolioId = $this->visitor?->portfolio?->id;
+        $actionUrl = $visitorPortfolioId ? "/portfolio/{$visitorPortfolioId}" : '/visitantes';
+
         return new DatabaseMessage([
             'type' => 'profile_viewed',
             'title_key' => 'Alguien vio tu perfil',
@@ -31,7 +34,7 @@ class ProfileViewed extends Notification implements ShouldQueue
             'params' => [
                 'visitor_name' => $this->visitorName,
             ],
-            'action_url' => '/portfolio/stats',
+            'action_url' => $actionUrl,
             'entity_type' => 'profile_visit',
             'entity_id' => $notifiable->portfolio?->id,
         ]);

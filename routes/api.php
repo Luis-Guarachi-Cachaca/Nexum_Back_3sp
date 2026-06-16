@@ -115,6 +115,7 @@ Route::prefix('v1')->group(function () {
         //Backups y dashboard backup
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
         Route::post('/backup',   [AdminBackupController::class,   'generate']);
+        Route::post('/backup/restore', [AdminBackupController::class, 'restore']);
     });
 
     // Notifications system

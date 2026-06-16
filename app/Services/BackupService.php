@@ -165,4 +165,43 @@ class BackupService
 
         return "CREATE TABLE IF NOT EXISTS \"{$table}\" (\n" . implode(",\n", $defs) . "\n);";
     }
+
+    /**
+     * Restaura un archivo SQL en la base de datos.
+     * Intenta psql primero, y si falla o no está disponible, cae a DB::unprepared().
+     */
+    public function restore(string $path): void
+    {
+        try {
+            if (! function_exists('exec')) {
+                throw new \RuntimeException('exec() no está disponible.');
+            }
+
+            $cfg = config('database.connections.pgsql');
+            putenv("PGPASSWORD={$cfg['password']}");
+
+            $cmd = sprintf(
+                'psql -h %s -p %s -U %s -d %s -f %s 2>&1',
+                escapeshellarg($cfg['host']),
+                escapeshellarg($cfg['port'] ?? '5432'),
+                escapeshellarg($cfg['username']),
+                escapeshellarg($cfg['database']),
+                escapeshellarg($path)
+            );
+
+            exec($cmd, $output, $exitCode);
+            putenv('PGPASSWORD=');
+
+            if ($exitCode !== 0) {
+                throw new \RuntimeException('psql falló: ' . implode(' ', $output));
+            }
+        } catch (\Throwable $e) {
+            // Fallback a PHP
+            $sql = file_get_contents($path);
+            if ($sql === false) {
+                throw new \RuntimeException('No se pudo leer el archivo de backup.');
+            }
+            DB::unprepared($sql);
+        }
+    }
 }

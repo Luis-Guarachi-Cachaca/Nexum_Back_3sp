@@ -36,10 +36,23 @@ class StoreCategorySuggestionRequest extends FormRequest
                 return;
             }
 
-            // Name must not already exist in project_categories
-            $categoryExists = ProjectCategory::whereRaw('LOWER(name) = ?', [strtolower($this->name)])->exists();
-            if ($categoryExists) {
-                $validator->errors()->add('name', 'This category already exists. Select it directly from the list.');
+            // Name must not already exist in project_categories (check with fuzzy matching)
+            $suggestedName = strtolower(trim($this->name));
+            $existingCategories = ProjectCategory::get(['name']);
+            
+            foreach ($existingCategories as $category) {
+                $existingName = strtolower(trim($category->name));
+                
+                if ($existingName === $suggestedName) {
+                    $validator->errors()->add('name', 'Esta categoría ya existe. Selecciónala directamente de la lista.');
+                    break;
+                }
+                
+                // Levenshtein distance: allow up to 2 typos for relatively long words
+                if (strlen($suggestedName) > 3 && levenshtein($existingName, $suggestedName) <= 2) {
+                    $validator->errors()->add('name', "La categoría sugerida es muy similar a '{$category->name}', que ya existe.");
+                    break;
+                }
             }
 
             // Name must not have another pending suggestion already
