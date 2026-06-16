@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Portfolio;
 use App\Models\ProfileVisit;
+use App\Notifications\ProfileViewed;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -66,6 +67,13 @@ class ProfileVisitController extends Controller
 
         // Incrementar el contador en el portfolio
         $portfolio->increment('views_count');
+
+        // Notify the portfolio owner about the profile view
+        $visitorName = $visitor
+            ? ($visitor->first_name . ' ' . $visitor->last_name)
+            : 'Alguien';
+
+        $portfolio->user->notify(new ProfileViewed($visitor, $visitorName));
 
         return response()->json(['message' => 'Visit recorded successfully'], 201);
     }

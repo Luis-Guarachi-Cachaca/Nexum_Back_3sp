@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\AccountDeactivatedByAdmin;
+use App\Notifications\AccountReactivatedByAdmin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -59,6 +61,9 @@ class AdminUserController extends Controller
             // Revocar todos los tokens activos
             $user->tokens()->delete();
 
+            // Notify the user about account deactivation
+            $user->notify(new AccountDeactivatedByAdmin($request->user()));
+
             // Registrar en activity log con el usuario afectado como sujeto
             $action = 'deactivated';
             activity()
@@ -87,6 +92,9 @@ class AdminUserController extends Controller
             'is_active'            => true,
             'deactivated_by_admin' => false,
         ]);
+
+        // Notify the user about account reactivation
+        $user->notify(new AccountReactivatedByAdmin($request->user()));
 
         // Registrar en activity log con el usuario afectado como sujeto
         $action = 'reactivated';

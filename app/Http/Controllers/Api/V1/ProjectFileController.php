@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectFileResource;
 use App\Models\Project;
 use App\Models\ProjectFile;
+use App\Notifications\StorageAlmostFull;
 use App\Services\CloudinaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -98,6 +99,14 @@ class ProjectFileController extends Controller
                 'order'                => $currentCount + count($created),
                 'size'                 => $uploaded['size'],
             ]);
+        }
+
+        // Check if storage is almost full (90% of 700 MB) and notify user
+        $usedBytes = $this->userStorageUsed($request->user()->id);
+        $storageThreshold = self::MAX_STORAGE_BYTES * 0.9; // 90% of 700 MB
+
+        if ($usedBytes >= $storageThreshold) {
+            $request->user()->notify(new StorageAlmostFull($usedBytes, self::MAX_STORAGE_BYTES));
         }
 
         return response()->json([

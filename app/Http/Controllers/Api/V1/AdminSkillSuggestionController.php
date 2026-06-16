@@ -7,6 +7,8 @@ use App\Http\Resources\AdminSkillSuggestionResource;
 use App\Models\PortfolioSkill;
 use App\Models\Skill;
 use App\Models\SkillSuggestion;
+use App\Notifications\SkillSuggestionApproved;
+use App\Notifications\SkillSuggestionRejected;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -67,6 +69,9 @@ class AdminSkillSuggestionController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        // Notify the user who created the suggestion
+        $suggestion->user->notify(new SkillSuggestionApproved($suggestion));
+
         return new AdminSkillSuggestionResource($suggestion->fresh()->load(['user', 'reviewer']));
     }
 
@@ -81,6 +86,9 @@ class AdminSkillSuggestionController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        // Notify the user who created the suggestion
+        $suggestion->user->notify(new SkillSuggestionRejected($suggestion));
 
         return new AdminSkillSuggestionResource($suggestion->fresh()->load(['user', 'reviewer']));
     }

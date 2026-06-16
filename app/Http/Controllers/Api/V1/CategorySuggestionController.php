@@ -7,6 +7,8 @@ use App\Http\Requests\StoreCategorySuggestionRequest;
 use App\Http\Resources\CategorySuggestionResource;
 use App\Models\CategorySuggestion;
 use App\Models\Project;
+use App\Models\User;
+use App\Notifications\NewPendingSuggestion;
 use Illuminate\Http\JsonResponse;
 
 class CategorySuggestionController extends Controller
@@ -24,6 +26,11 @@ class CategorySuggestionController extends Controller
             'justification' => $request->validated()['justification'] ?? null,
             'status'        => 'pending',
         ]);
+
+        // Notify all admins about the new pending suggestion
+        User::role('admin')->each(function ($admin) use ($suggestion) {
+            $admin->notify(new NewPendingSuggestion('category', $suggestion));
+        });
 
         return (new CategorySuggestionResource($suggestion))->response()->setStatusCode(201);
     }
