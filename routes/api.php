@@ -25,12 +25,16 @@ use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\PortfolioThemeController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminBackupController;
+use App\Http\Controllers\Api\V1\FeedController;
 use App\Http\Controllers\Api\V1\NotificationController;
 
 Route::prefix('v1')->group(function () {
 
     // Public: featured profiles for landing page
     Route::get('/featured-profiles', [FeaturedProfilesController::class, 'index']);
+
+    // Public: Feed de publicaciones
+    Route::get('/feed', [FeedController::class, 'index']);
 
     // Public: búsqueda de profesionales (soporta tokens opcionales)
     Route::get('/search/professionals', [\App\Http\Controllers\Api\V1\SearchController::class, 'professionals']);
