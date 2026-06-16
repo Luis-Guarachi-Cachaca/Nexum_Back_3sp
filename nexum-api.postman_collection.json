@@ -15,7 +15,8 @@
     { "key": "portfolio_skill_id",   "value": "", "type": "string" },
     { "key": "portfolio_id",        "value": "", "type": "string" },
     { "key": "work_experience_id",   "value": "", "type": "string" },
-    { "key": "suggestion_id",        "value": "", "type": "string" }
+    { "key": "suggestion_id",        "value": "", "type": "string" },
+    { "key": "notification_id",      "value": "", "type": "string" }
   ],
   "item": [
     {
@@ -1823,6 +1824,79 @@
               "variable": [{ "key": "link_id", "value": "1" }]
             },
             "description": "Elimina un enlace adicional del portfolio del usuario autenticado.\n\n**Response 200:**\n{\n  \"message\": \"Link deleted successfully\"\n}\n\n**Errores:**\n- 404: Enlace no encontrado\n- 404: Portfolio no encontrado\n- 403: El enlace no pertenece al usuario autenticado"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notificaciones",
+      "description": "Sistema de notificaciones in-app (campanita). Requiere Bearer {{token}} o {{admin_token}}.\n\n**Tipos de notificaciones implementadas:**\n- skill_suggestion_approved/rejected: cuando admin aprueba/rechaza sugerencia de skill\n- category_suggestion_approved/rejected: cuando admin aprueba/rechaza sugerencia de categoría\n- account_deactivated: cuando admin desactiva cuenta (database + email)\n- account_reactivated: cuando admin reactiva cuenta\n- new_pending_suggestion: cuando usuario crea sugerencia (solo admins)\n- profile_viewed: cuando alguien visita el perfil (con dedup 2h)\n- storage_almost_full: cuando almacenamiento está al 90% de 700 MB\n\n**Payload de respuesta:**\n{\n  \"id\": \"uuid\",\n  \"type\": \"skill_suggestion_approved\",\n  \"title_key\": \"notifications.skill_approved.title\",\n  \"body_key\": \"notifications.skill_approved.body\",\n  \"params\": { \"skill_name\": \"Rust\" },\n  \"action_url\": \"/portfolio/skills\",\n  \"entity_type\": \"skill_suggestion\",\n  \"entity_id\": 42,\n  \"read_at\": null,\n  \"created_at\": \"2026-06-16T...\"\n}",
+      "item": [
+        {
+          "name": "Listar Notificaciones",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications?per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","notifications"],
+              "query": [
+                { "key": "per_page", "value": "20", "description": "Items por página (máx 100)" }
+              ]
+            },
+            "description": "Lista todas las notificaciones del usuario autenticado, paginadas. Ordenadas por created_at descendente.\n\n**Response 200:**\n{\n  \"data\": [...],\n  \"meta\": {\n    \"current_page\": 1,\n    \"per_page\": 20,\n    \"total\": 5\n  }\n}\n\nPara el dropdown de la campanita, usar ?per_page=5."
+          }
+        },
+        {
+          "name": "Contador de No Leídas",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/unread-count",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","notifications","unread-count"]
+            },
+            "description": "Devuelve el contador de notificaciones no leídas para el badge de la campanita.\n\n**Response 200:**\n{\n  \"unread_count\": 3\n}\n\nUsar este endpoint para polling cada 30-60 segundos y actualizar el badge."
+          }
+        },
+        {
+          "name": "Marcar como Leída",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","notifications","{{notification_id}}","read"]
+            },
+            "description": "Marca una notificación específica como leída.\n\n**Response 200:**\n{\n  \"message\": \"Notification marked as read.\"\n}\n\n**Errores:**\n- 404: Notificación no encontrada o no pertenece al usuario"
+          }
+        },
+        {
+          "name": "Marcar Todas como Leídas",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["api","v1","notifications","read-all"]
+            },
+            "description": "Marca todas las notificaciones del usuario como leídas.\n\n**Response 200:**\n{\n  \"message\": \"All notifications marked as read.\"\n}\n\nÚtil para el botón 'Marcar todas como leídas' en el panel de notificaciones."
           }
         }
       ]

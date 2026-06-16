@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\ThemeController;
 use App\Http\Controllers\Api\V1\PortfolioThemeController;
 use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminBackupController;
+use App\Http\Controllers\Api\V1\NotificationController;
 
 Route::prefix('v1')->group(function () {
 
@@ -110,6 +111,14 @@ Route::prefix('v1')->group(function () {
         //Backups y dashboard backup
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
         Route::post('/backup',   [AdminBackupController::class,   'generate']);
+    });
+
+    // Notifications system
+    Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::patch('/read-all', [NotificationController::class, 'markAllAsRead']);
     });
 
     // HU-7 + HU-8: Portfolio del usuario autenticado

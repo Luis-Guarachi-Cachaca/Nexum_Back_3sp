@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\AdminCategorySuggestionResource;
 use App\Models\CategorySuggestion;
 use App\Models\ProjectCategory;
+use App\Notifications\CategorySuggestionApproved;
+use App\Notifications\CategorySuggestionRejected;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -51,6 +53,9 @@ class AdminCategorySuggestionController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        // Notify the user who created the suggestion
+        $suggestion->user->notify(new CategorySuggestionApproved($suggestion));
+
         return new AdminCategorySuggestionResource($suggestion->fresh()->load(['user', 'reviewer', 'project']));
     }
 
@@ -65,6 +70,9 @@ class AdminCategorySuggestionController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        // Notify the user who created the suggestion
+        $suggestion->user->notify(new CategorySuggestionRejected($suggestion));
 
         return new AdminCategorySuggestionResource($suggestion->fresh()->load(['user', 'reviewer', 'project']));
     }

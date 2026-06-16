@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSkillSuggestionRequest;
 use App\Http\Resources\SkillSuggestionResource;
 use App\Models\SkillSuggestion;
+use App\Models\User;
+use App\Notifications\NewPendingSuggestion;
 use Illuminate\Http\JsonResponse;
 
 class SkillSuggestionController extends Controller
@@ -28,6 +30,11 @@ class SkillSuggestionController extends Controller
             'justification' => $request->validated()['justification'] ?? null,
             'status'        => 'pending',
         ]);
+
+        // Notify all admins about the new pending suggestion
+        User::role('admin')->each(function ($admin) use ($suggestion) {
+            $admin->notify(new NewPendingSuggestion('skill', $suggestion));
+        });
 
         return (new SkillSuggestionResource($suggestion))->response()->setStatusCode(201);
     }
